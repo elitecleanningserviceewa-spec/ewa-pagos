@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EWA Pagos">
+<meta name="theme-color" content="#0f0e0c">
+<title>EWA Elite — Control de Pagos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --bg:#0f0e0c;--sur:#1a1916;--card:#211f1c;--bor:#2e2b26;
+  --gold:#c9a84c;--gl:#e8c97a;--gd:#7a6530;
+  --tx:#f0ead8;--mu:#8a8070;
+  --gr:#5a9e72;--rd:#c05a4a;--bl:#4a7ec0;--r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;font-size:14px;}
+header{background:var(--sur);border-bottom:1px solid var(--bor);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:8px;}
+.logo{font-family:'DM Serif Display',serif;font-size:17px;color:var(--gold);}
+.logo small{color:var(--mu);font-size:10px;display:block;font-weight:300;}
+.tabs{display:flex;gap:2px;background:var(--card);border-radius:8px;padding:3px;}
+.tab{padding:6px 11px;border-radius:6px;border:none;background:transparent;color:var(--mu);cursor:pointer;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;transition:all .2s;}
+.tab.active{background:var(--gold);color:#000;}
+main{padding:14px;max-width:900px;margin:0 auto;}
+
+/* CARDS */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px;}
+.sc{background:var(--card);border:1px solid var(--bor);border-radius:var(--r);padding:12px;}
+.sc .lb{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.sc .val{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;}
+.sc.g .val{color:var(--gl);}
+.sc.gr .val{color:var(--gr);}
+.sc.rd .val{color:var(--rd);}
+.sc.bl .val{color:var(--bl);}
+
+/* BANNER */
+.ban{background:rgba(90,158,114,.1);border:1px solid rgba(90,158,114,.25);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.ban.neg{background:rgba(192,90,74,.1);border-color:rgba(192,90,74,.25);}
+.ban-amt{font-family:'DM Mono',monospace;font-size:24px;color:var(--gr);}
+.ban-amt.neg{color:var(--rd);}
+.ban-lbl{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.ban-det{font-size:11px;line-height:1.9;}
+
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;transition:all .18s;}
+.btn-gold{background:var(--gold);color:#000;}.btn-gold:hover{background:var(--gl);}
+.btn-out{background:transparent;border:1px solid var(--bor);color:var(--mu);}.btn-out:hover{border-color:var(--gd);color:var(--tx);}
+.btn-bl{background:var(--bl);color:#fff;}
+.btn-gr{background:var(--gr);color:#fff;}
+.btn-sm{padding:3px 8px;font-size:11px;}
+.bdel{background:transparent;border:1px solid var(--bor);color:var(--rd);font-size:11px;padding:3px 8px;border-radius:5px;cursor:pointer;font-family:'Sora',sans-serif;}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:7px;}
+.st{font-family:'DM Serif Display',serif;font-size:18px;color:var(--gold);}
+
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.ov.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--bor);border-radius:13px;padding:18px;width:100%;max-width:540px;margin:10px;animation:su .2s ease;max-height:93vh;overflow-y:auto;}
+@keyframes su{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal h3{font-family:'DM Serif Display',serif;font-size:17px;color:var(--gold);margin-bottom:13px;}
+.ma{display:flex;gap:8px;justify-content:flex-end;margin-top:13px;}
+.fg{margin-bottom:9px;}
+.fg label{display:block;font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--sur);border:1px solid var(--bor);border-radius:6px;padding:8px 10px;color:var(--tx);font-family:'Sora',sans-serif;font-size:13px;outline:none;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--gd);}
+.fg select option{background:var(--card);}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.hr{border:none;border-top:1px solid var(--bor);margin:11px 0;}
+.sm{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;}
+
+/* JOB BLOCK */
+.jb{background:var(--sur);border:1px solid var(--bor);border-radius:8px;padding:12px;margin-bottom:10px;}
+.jbh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.jbn{font-family:'DM Serif Display',serif;font-size:13px;color:var(--gold);}
+.gt{background:var(--bg);border:1px solid var(--gd);border-radius:6px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
+.gt span{font-size:11px;color:var(--mu);}
+.gt strong{font-family:'DM Mono',monospace;color:var(--gl);font-size:16px;}
+
+/* ASSIGNEE */
+.ar{background:var(--bg);border:1px solid var(--bor);border-radius:6px;padding:7px 9px;margin-bottom:6px;}
+.af{display:grid;grid-template-columns:1fr 90px 46px auto;gap:6px;align-items:center;}
+.af input,.af select{background:var(--sur);border:1px solid var(--bor);border-radius:5px;padding:6px 7px;color:var(--tx);font-family:'Sora',sans-serif;font-size:12px;outline:none;width:100%;}
+.pct{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);text-align:center;}
+
+/* DAY CARDS */
+.dc{background:var(--card);border:1px solid var(--bor);border-radius:var(--r);margin-bottom:11px;overflow:hidden;}
+.dh{padding:11px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;flex-wrap:wrap;gap:6px;}
+.dh:hover{background:rgba(255,255,255,.02);}
+.ddate{font-family:'DM Serif Display',serif;font-size:15px;color:var(--gold);}
+.dmeta{font-size:11px;color:var(--mu);margin-top:1px;}
+.dright{display:flex;align-items:center;gap:8px;}
+.sb{display:inline-block;padding:2px 7px;border-radius:16px;font-size:10px;font-weight:600;}
+.sp{background:rgba(201,168,76,.15);color:var(--gold);}
+.sk{background:rgba(90,158,114,.15);color:var(--gr);}
+.sl{background:rgba(74,126,192,.15);color:var(--bl);}
+.chev{color:var(--mu);font-size:10px;transition:transform .2s;}
+.chev.open{transform:rotate(180deg);}
+.db{display:none;}
+.db.open{display:block;}
+.jd{border-top:1px solid var(--bor);padding:10px 14px;}
+.jdh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:6px;}
+.jadr{font-weight:600;font-size:13px;flex:1;}
+.jpt{font-family:'DM Mono',monospace;font-size:13px;color:var(--gl);white-space:nowrap;}
+.jpl{font-size:9px;color:var(--mu);text-align:right;}
+.ct{width:100%;border-collapse:collapse;margin-bottom:5px;}
+.ct th{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;padding:3px 6px;text-align:left;background:var(--sur);}
+.ct td{padding:5px 6px;font-size:12px;border-top:1px solid var(--bor);}
+.bar{width:40px;height:4px;background:var(--bor);border-radius:2px;display:inline-block;vertical-align:middle;margin-left:3px;}
+.barf{height:100%;background:var(--gold);border-radius:2px;}
+.df{padding:8px 14px;border-top:1px solid var(--bor);background:var(--sur);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.dfs{font-size:11px;color:var(--mu);}
+.dfs strong{font-family:'DM Mono',monospace;color:var(--gl);}
+.dfa{display:flex;gap:4px;flex-wrap:wrap;}
+
+/* CLEANER CARDS */
+.cg{display:grid;gap:9px;}
+.cc{background:var(--card);border:1px solid var(--bor);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.cav{width:36px;height:36px;border-radius:50%;background:var(--gd);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--gl);flex-shrink:0;}
+.ci{flex:1;min-width:90px;}
+.cn{font-weight:600;font-size:13px;margin-bottom:1px;}
+.cm{font-size:11px;color:var(--mu);}
+.cstats{display:flex;gap:12px;}
+.cst{text-align:center;}
+.csl{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
+.csv{font-family:'DM Mono',monospace;font-size:15px;}
+
+/* FILTERS */
+.flt{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap;}
+.fsel{background:var(--card);border:1px solid var(--bor);border-radius:6px;padding:6px 10px;color:var(--tx);font-family:'Sora',sans-serif;font-size:12px;outline:none;cursor:pointer;}
+
+/* EXPENSES */
+.tw{background:var(--card);border:1px solid var(--bor);border-radius:var(--r);overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--sur);padding:8px 11px;text-align:left;font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+td{padding:8px 11px;border-top:1px solid var(--bor);font-size:12px;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.mono{font-family:'DM Mono',monospace;}
+.bexp{display:inline-block;padding:2px 7px;border-radius:16px;font-size:10px;font-weight:600;background:rgba(192,90,74,.15);color:var(--rd);}
+
+/* REPORT */
+.wb{background:var(--card);border:1px solid var(--bor);border-radius:var(--r);padding:12px 15px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.wb label{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;}
+.wb input{background:var(--sur);border:1px solid var(--bor);border-radius:6px;padding:7px 10px;color:var(--tx);font-family:'Sora',sans-serif;font-size:12px;outline:none;}
+
+/* BACKUP */
+.bkp{background:var(--card);border:1px solid var(--bor);border-radius:var(--r);padding:12px 15px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.bkp-title{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:2px;}
+.bkp-sub{font-size:10px;color:var(--mu);}
+
+.empty{text-align:center;padding:44px 16px;color:var(--mu);}
+.empty .icon{font-size:30px;margin-bottom:8px;opacity:.4;}
+.view{display:none;}
+.view.active{display:block;}
+.dtag{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin:12px 0 7px;padding-left:2px;}
+
+@media(max-width:560px){
+  header{flex-direction:column;align-items:flex-start;}
+  .tabs{width:100%;}
+  .tab{flex:1;text-align:center;padding:5px 3px;font-size:10px;}
+  .fr{grid-template-columns:1fr;}
+  .summary{grid-template-columns:1fr 1fr;}
+  .af{grid-template-columns:1fr 78px 40px auto;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">EWA Elite Cleaning <small>Panel de Control</small></div>
+  <div class="tabs">
+    <button class="tab active" onclick="showView('cleaners',this)">Limpiadores</button>
+    <button class="tab" onclick="showView('jobs',this)">Trabajos</button>
+    <button class="tab" onclick="showView('expenses',this)">Gastos</button>
+    <button class="tab" onclick="showView('report',this)">PDF</button>
+  </div>
+</header>
+
+<main>
+  <div class="summary">
+    <div class="sc g"><div class="lb">Por Pagar</div><div class="val" id="sumOwed">$0.00</div></div>
+    <div class="sc gr"><div class="lb">Pagado (mes)</div><div class="val" id="sumPaid">$0.00</div></div>
+    <div class="sc bl"><div class="lb">Choferes por pagar</div><div class="val" id="sumDrivers">$0.00</div></div>
+    <div class="sc rd"><div class="lb">Gastos (mes)</div><div class="val" id="sumExpenses">$0.00</div></div>
+    <div class="sc gr"><div class="lb">Tu Ganancia (mes)</div><div class="val" id="sumProfit">$0.00</div></div>
+  </div>
+
+  <div class="ban" id="pbanner">
+    <div>
+      <div class="ban-lbl">Balance del mes</div>
+      <div class="ban-amt" id="bannerAmt">$0.00</div>
+    </div>
+    <div class="ban-det" id="bannerDet">—</div>
+  </div>
+
+  <!-- LIMPIADORES -->
+  <div class="view active" id="view-cleaners">
+    <div class="sh">
+      <div class="st">Limpiadores</div>
+      <button class="btn btn-gold" onclick="openModal('mc')">+ Agregar</button>
+    </div>
+    <div class="cg" id="cleaner-list"><div class="empty"><div class="icon">🧹</div>Agrega tu primer limpiador.</div></div>
+  </div>
+
+  <!-- TRABAJOS -->
+  <div class="view" id="view-jobs">
+    <div class="sh">
+      <div class="st">Días de Trabajo</div>
+      <button class="btn btn-gold" onclick="openJobModal()">+ Registrar Día</button>
+    </div>
+    <div class="flt">
+      <select class="fsel" id="flt-cleaner" onchange="renderJobs()"><option value="">Todos</option></select>
+      <select class="fsel" id="flt-status" onchange="renderJobs()">
+        <option value="">Todos los estados</option>
+        <option value="pending">Pendiente</option>
+        <option value="paid">Pagado</option>
+        <option value="partial">Parcial</option>
+      </select>
+    </div>
+    <div id="jobs-list"><div class="empty"><div class="icon">💳</div>Sin registros.</div></div>
+  </div>
+
+  <!-- GASTOS -->
+  <div class="view" id="view-expenses">
+    <div class="sh">
+      <div class="st">Gastos</div>
+      <button class="btn btn-gold" onclick="openModal('me')">+ Agregar</button>
+    </div>
+    <div class="tw">
+      <table><thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th><th></th></tr></thead>
+      <tbody id="expenses-body"><tr><td colspan="5"><div class="empty"><div class="icon">📋</div>Sin gastos.</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- PDF -->
+  <div class="view" id="view-report">
+    <div class="sh"><div class="st">Reporte PDF Semanal</div></div>
+
+    <!-- BACKUP -->
+    <div class="bkp">
+      <div>
+        <div class="bkp-title">💾 Backup de datos</div>
+        <div class="bkp-sub">Exporta tus datos para no perderlos</div>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn btn-gr" onclick="exportData()">⬇ Exportar datos</button>
+        <button class="btn btn-out" onclick="document.getElementById('importFile').click()">⬆ Importar datos</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+    </div>
+
+    <div class="wb">
+      <label>Del</label><input type="date" id="week-start">
+      <label>al</label><input type="date" id="week-end">
+      <button class="btn btn-bl" onclick="generatePDF()">⬇ Descargar PDF</button>
+    </div>
+    <div id="report-preview"></div>
+  </div>
+</main>
+
+<!-- MODAL: LIMPIADOR -->
+<div class="ov" id="mc">
+  <div class="modal">
+    <h3>Agregar Limpiador</h3>
+    <div class="fg"><label>Nombre completo</label><input type="text" id="c-name" placeholder="Ej: María González"></div>
+    <div class="fr">
+      <div class="fg"><label>Teléfono</label><input type="tel" id="c-phone" placeholder="502-555-0000"></div>
+      <div class="fg"><label>Método de pago</label>
+        <select id="c-method"><option>Zelle</option><option>Cash</option><option>Venmo</option><option>CashApp</option><option>Otro</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Notas</label><textarea id="c-notes" rows="2" placeholder="Disponible L-V..."></textarea></div>
+    <div class="ma">
+      <button class="btn btn-out" onclick="closeModal('mc')">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveCleaner()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: GASTO -->
+<div class="ov" id="me">
+  <div class="modal">
+    <h3>Agregar Gasto</h3>
+    <div class="fg"><label>Categoría</label>
+      <select id="e-cat"><option>Suministros de limpieza</option><option>Gasolina / Transporte</option><option>Marketing / Publicidad</option><option>Plataformas (Turno, Thumbtack...)</option><option>Equipo / Herramientas</option><option>Seguro</option><option>Teléfono / Internet</option><option>Otro</option></select>
+    </div>
+    <div class="fg"><label>Descripción</label><input type="text" id="e-desc" placeholder="Ej: Mop y trapeadores Walmart"></div>
+    <div class="fr">
+      <div class="fg"><label>Fecha</label><input type="date" id="e-date"></div>
+      <div class="fg"><label>Monto ($)</label><input type="number" id="e-amount" placeholder="0.00" step="0.01" min="0"></div>
+    </div>
+    <div class="ma">
+      <button class="btn btn-out" onclick="closeModal('me')">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveExpense()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DÍA DE TRABAJO -->
+<div class="ov" id="mj">
+  <div class="modal">
+    <h3>Registrar Día de Trabajo</h3>
+    <div class="fr">
+      <div class="fg"><label>Limpiador principal</label>
+        <select id="j-cleaner"><option value="">— selecciona —</option></select>
+      </div>
+      <div class="fg"><label>Fecha</label><input type="date" id="j-date"></div>
+    </div>
+    <hr class="hr">
+    <div class="sm"><span>Trabajos del día</span><button class="btn btn-out btn-sm" onclick="addJobBlock()">+ Trabajo</button></div>
+    <div id="jbc"></div>
+    <div class="gt"><span>Total a pagar (limpiadoras + choferes)</span><strong id="grand-total">$0.00</strong></div>
+    <hr class="hr">
+    <div class="fr">
+      <div class="fg"><label>Estado del pago</label>
+        <select id="j-status"><option value="pending">⏳ Pendiente</option><option value="paid">✅ Pagado</option><option value="partial">🔵 Parcial</option></select>
+      </div>
+      <div class="fg"><label>Notas</label><textarea id="j-notes" rows="2" placeholder="Ej: se adelantaron $20..."></textarea></div>
+    </div>
+    <div class="ma">
+      <button class="btn btn-out" onclick="closeModal('mj')">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveJobDay()">Guardar día</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR -->
+<div class="ov" id="medit">
+  <div class="modal">
+    <h3>✏️ Editar Registro</h3>
+    <div class="fr">
+      <div class="fg"><label>Limpiador principal</label><select id="edit-cleaner"><option value="">— selecciona —</option></select></div>
+      <div class="fg"><label>Fecha</label><input type="date" id="edit-date"></div>
+    </div>
+    <div class="fg"><label>Estado del pago</label>
+      <select id="edit-status"><option value="pending">⏳ Pendiente</option><option value="paid">✅ Pagado</option><option value="partial">🔵 Parcial</option></select>
+    </div>
+    <div class="fg"><label>Notas</label><textarea id="edit-notes" rows="2"></textarea></div>
+    <div style="font-size:11px;color:var(--mu);padding:8px;background:var(--sur);border-radius:6px;">💡 Para cambiar dirección o montos, elimina y vuelve a registrar.</div>
+    <div class="ma">
+      <button class="btn btn-out" onclick="closeModal('medit')">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveEdit()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════
+// STATE
+// ═══════════════════════════════
+var S = JSON.parse(localStorage.getItem('ewa_v1') || '{"cleaners":[],"days":[],"expenses":[]}');
+function save(){ localStorage.setItem('ewa_v1', JSON.stringify(S)); }
+
+// ═══════════════════════════════
+// VIEWS
+// ═══════════════════════════════
+function showView(n, el){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('view-'+n).classList.add('active');
+  el.classList.add('active');
+  if(n==='jobs'){ fillCF(); renderJobs(); }
+  if(n==='expenses') renderExpenses();
+  if(n==='cleaners') renderCleaners();
+  if(n==='report') initReport();
+}
+
+// ═══════════════════════════════
+// MODALS
+// ═══════════════════════════════
+function openModal(id){
+  var today = new Date().toISOString().split('T')[0];
+  var df = document.querySelector('#'+id+' input[type="date"]');
+  if(df && !df.value) df.value = today;
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.ov').forEach(function(o){
+  o.addEventListener('click', function(e){ if(e.target===o) o.classList.remove('open'); });
+});
+
+// ═══════════════════════════════
+// HELPERS
+// ═══════════════════════════════
+function tm(){
+  var n=new Date();
+  return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
+}
+function fmt(d){
+  if(!d) return '—';
+  var p=d.split('-');
+  var M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return parseInt(p[2])+' '+M[parseInt(p[1])-1]+' '+p[0];
+}
+function n2(n){ return '$'+parseFloat(n||0).toFixed(2); }
+
+// Cuánto le debes a una limpiadora (solo sus trabajos, pendientes)
+function cOwed(cid){
+  var t=0;
+  S.days.forEach(function(d){
+    if(d.status==='paid') return;
+    d.jobs.forEach(function(j){
+      j.assignees.forEach(function(a){ if(a.cleanerId===cid) t+=a.amount; });
+    });
+  });
+  return t;
+}
+// Cuánto le pagaste a una limpiadora este mes
+function cPaid(cid){
+  var t=0, month=tm();
+  S.days.forEach(function(d){
+    if(d.status!=='paid') return;
+    if(!d.date || !d.date.startsWith(month)) return;
+    d.jobs.forEach(function(j){
+      j.assignees.forEach(function(a){ if(a.cleanerId===cid) t+=a.amount; });
+    });
+  });
+  return t;
+}
+// Totales de choferes
+function drTotals(){
+  var map={}, month=tm();
+  S.days.forEach(function(d){
+    d.jobs.forEach(function(j){
+      if(!j.hasDriver || !j.driverCost) return;
+      var k=(j.driverName||'Chofer').trim();
+      if(!map[k]) map[k]={name:k,owed:0,paid:0};
+      if(j.driverStatus!=='paid') map[k].owed+=j.driverCost;
+      if(j.driverStatus==='paid' && d.date && d.date.startsWith(month)) map[k].paid+=j.driverCost;
+    });
+  });
+  return Object.values(map);
+}
+// Total del día para el limpiador principal
+function dayTotal(d){
+  var t=0;
+  d.jobs.forEach(function(j){
+    j.assignees.forEach(function(a){ if(a.cleanerId===d.cleanerId) t+=a.amount; });
+    if(j.hasDriver && j.driverCost>0) t+=j.driverCost;
+  });
+  return t;
+}
+
+// ═══════════════════════════════
+// BACKUP / RESTORE
+// ═══════════════════════════════
+function exportData(){
+  var data = JSON.stringify(S, null, 2);
+  var blob = new Blob([data], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'EWA_backup_'+new Date().toISOString().split('T')[0]+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(event){
+  var file = event.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var data = JSON.parse(e.target.result);
+      if(data.cleaners && data.days && data.expenses){
+        S = data;
+        save();
+        renderCleaners();
+        updateSummary();
+        alert('✅ Datos importados correctamente');
+      } else {
+        alert('❌ Archivo inválido');
+      }
+    } catch(err){
+      alert('❌ Error al leer el archivo');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+// ═══════════════════════════════
+// CLEANERS
+// ═══════════════════════════════
+function saveCleaner(){
+  var name=document.getElementById('c-name').value.trim();
+  if(!name){ alert('Ingresa el nombre'); return; }
+  S.cleaners.push({
+    id: Date.now(), name: name,
+    phone: document.getElementById('c-phone').value.trim(),
+    method: document.getElementById('c-method').value,
+    notes: document.getElementById('c-notes').value.trim()
+  });
+  save(); closeModal('mc');
+  ['c-name','c-phone','c-notes'].forEach(function(i){ document.getElementById(i).value=''; });
+  renderCleaners(); updateSummary();
+}
+function deleteCleaner(id){
+  if(!confirm('¿Eliminar limpiador?')) return;
+  S.cleaners = S.cleaners.filter(function(c){ return c.id!==id; });
+  S.days = S.days.filter(function(d){ return d.cleanerId!==id; });
+  save(); renderCleaners(); updateSummary();
+}
+function quickPayAll(cid){
+  S.days.forEach(function(d){ if(d.cleanerId===cid && d.status!=='paid') d.status='paid'; });
+  save(); renderCleaners(); renderJobs(); updateSummary();
+}
+function renderCleaners(){
+  var el=document.getElementById('cleaner-list');
+  if(!S.cleaners.length){
+    el.innerHTML='<div class="empty"><div class="icon">🧹</div>Agrega tu primer limpiador.</div>';
+    return;
+  }
+  var html = S.cleaners.map(function(c){
+    var owed=cOwed(c.id), paid=cPaid(c.id);
+    var init=c.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+    return '<div class="cc">'+
+      '<div class="cav">'+init+'</div>'+
+      '<div class="ci">'+
+        '<div class="cn">'+c.name+'</div>'+
+        '<div class="cm">'+(c.phone||'Sin teléfono')+' · '+c.method+'</div>'+
+        (c.notes?'<div class="cm" style="font-style:italic">'+c.notes+'</div>':'')+
+      '</div>'+
+      '<div class="cstats">'+
+        '<div class="cst"><div class="csl">Por pagar</div><div class="csv" style="color:'+(owed>0?'var(--gl)':'var(--gr)')+'">'+n2(owed)+'</div></div>'+
+        '<div class="cst"><div class="csl">Pagado (mes)</div><div class="csv" style="color:var(--gr)">'+n2(paid)+'</div></div>'+
+      '</div>'+
+      '<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">'+
+        (owed>0?'<button class="btn btn-out btn-sm" onclick="quickPayAll('+c.id+')">✓ Pagar todo</button>':'<span style="font-size:11px;color:var(--gr)">Al día ✓</span>')+
+        ' <button class="bdel" onclick="deleteCleaner('+c.id+')">✕</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  var drivers=drTotals();
+  if(drivers.length){
+    html+='<div class="dtag">🚗 Choferes</div>';
+    html+=drivers.map(function(dr){
+      return '<div class="cc" style="border-color:#1e2d42">'+
+        '<div class="cav" style="background:#152038;color:var(--bl)">🚗</div>'+
+        '<div class="ci"><div class="cn" style="color:#6a9fd0">'+dr.name+'</div><div class="cm">Chofer</div></div>'+
+        '<div class="cstats">'+
+          '<div class="cst"><div class="csl">Por pagar</div><div class="csv" style="color:'+(dr.owed>0?'var(--bl)':'var(--gr)')+'">'+n2(dr.owed)+'</div></div>'+
+          '<div class="cst"><div class="csl">Pagado (mes)</div><div class="csv" style="color:var(--gr)">'+n2(dr.paid)+'</div></div>'+
+        '</div>'+
+        '<span style="font-size:11px;color:'+(dr.owed===0?'var(--gr)':'var(--bl)')+'">'+( dr.owed===0?'Al día ✓':'Pendiente')+'</span>'+
+      '</div>';
+    }).join('');
+  }
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════════
+// JOB BLOCKS
+// ═══════════════════════════════
+var jbCount=0, asCount=0;
+function openJobModal(){
+  fillCD('j-cleaner');
+  jbCount=0; asCount=0;
+  document.getElementById('jbc').innerHTML='';
+  document.getElementById('j-notes').value='';
+  document.getElementById('j-status').value='pending';
+  document.getElementById('j-date').value=new Date().toISOString().split('T')[0];
+  calcGT();
+  addJobBlock();
+  document.getElementById('mj').classList.add('open');
+}
+function addJobBlock(){
+  jbCount++;
+  var id=jbCount;
+  var div=document.createElement('div');
+  div.className='jb'; div.id='jb-'+id;
+  div.innerHTML=
+    '<div class="jbh">'+
+      '<span class="jbn">Trabajo #'+id+'</span>'+
+      (id>1?'<button class="bdel" onclick="removeJB('+id+')">✕ Quitar</button>':'')+
+    '</div>'+
+    '<div class="fg"><label>📍 Dirección</label>'+
+      '<input type="text" id="jaddr-'+id+'" placeholder="Ej: 1234 Fern Creek Ln, Louisville KY">'+
+    '</div>'+
+    '<div class="fr">'+
+      '<div class="fg"><label>Tipo de servicio</label>'+
+        '<select id="jtype-'+id+'"><option>Deep Clean</option><option>Recurring</option><option>Move In/Out</option><option>Post-Construction</option><option>STR Turnover</option><option>Commercial</option><option>Otro</option></select>'+
+      '</div>'+
+      '<div class="fg"><label>💰 Precio total (cliente paga)</label>'+
+        '<input type="number" id="jprice-'+id+'" placeholder="$0.00" step="0.01" min="0" oninput="recalc('+id+')">'+
+      '</div>'+
+    '</div>'+
+    '<div style="background:rgba(74,126,192,.08);border:1px solid rgba(74,126,192,.2);border-radius:7px;padding:9px 10px;margin-bottom:8px;">'+
+      '<div class="sm" style="margin-bottom:6px"><span>🚗 Chofer</span>'+
+        '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:var(--mu);text-transform:none;letter-spacing:0">'+
+          '<input type="checkbox" id="jhd-'+id+'" onchange="toggleDr('+id+')" style="accent-color:var(--gold)"> Incluir chofer'+
+        '</label>'+
+      '</div>'+
+      '<div id="jdd-'+id+'" style="display:none">'+
+        '<div class="fr">'+
+          '<div class="fg" style="margin-bottom:5px"><label>Nombre del chofer</label><input type="text" id="jdn-'+id+'" placeholder="Carlos Pérez"></div>'+
+          '<div class="fg" style="margin-bottom:5px"><label>Pago al chofer ($)</label><input type="number" id="jdc-'+id+'" placeholder="$0.00" step="0.01" min="0" oninput="recalc('+id+')"></div>'+
+        '</div>'+
+        '<div class="fg" style="margin-bottom:0"><label>Estado pago chofer</label>'+
+          '<select id="jds-'+id+'" style="width:100%;background:var(--bg);border:1px solid var(--bor);border-radius:5px;padding:6px 8px;color:var(--tx);font-family:\'Sora\',sans-serif;font-size:12px;outline:none;">'+
+            '<option value="pending">⏳ Pendiente</option><option value="paid">✅ Pagado</option>'+
+          '</select>'+
+        '</div>'+
+        '<div id="jdpct-'+id+'" style="font-size:11px;color:var(--bl);margin-top:4px;font-family:\'DM Mono\',monospace;"></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="sm"><span>👩 Limpiadoras asignadas</span><button class="btn btn-out btn-sm" onclick="addAssignee('+id+')">+ Agregar</button></div>'+
+    '<div id="asgn-'+id+'"></div>'+
+    '<div style="background:var(--bg);border:1px solid var(--bor);border-radius:6px;padding:8px 10px;margin-top:6px;font-size:12px;">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="color:var(--mu)">Cliente paga:</span><span style="font-family:\'DM Mono\',monospace;color:var(--gl)" id="jpt-'+id+'">$0.00</span></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="color:var(--mu)">Pago limpiadoras:</span><span style="font-family:\'DM Mono\',monospace" id="jcl-'+id+'">$0.00</span></div>'+
+      '<div id="jdrow-'+id+'" style="display:none;justify-content:space-between;margin-bottom:2px"><span style="color:var(--bl)">Pago chofer:</span><span style="font-family:\'DM Mono\',monospace;color:var(--bl)" id="jdamt-'+id+'">$0.00</span></div>'+
+      '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--bor);padding-top:4px;margin-top:3px"><span style="color:var(--mu)">Tu ganancia:</span><strong style="font-family:\'DM Mono\',monospace" id="jgain-'+id+'">$0.00</strong></div>'+
+    '</div>';
+  document.getElementById('jbc').appendChild(div);
+  addAssignee(id);
+}
+function removeJB(id){
+  var el=document.getElementById('jb-'+id);
+  if(el) el.remove();
+  calcGT();
+}
+function toggleDr(id){
+  var checked=document.getElementById('jhd-'+id).checked;
+  document.getElementById('jdd-'+id).style.display=checked?'block':'none';
+  recalc(id);
+}
+function addAssignee(jobId){
+  asCount++;
+  var aid=asCount;
+  var cont=document.getElementById('asgn-'+jobId);
+  var div=document.createElement('div');
+  div.className='ar'; div.id='ar-'+aid;
+  var opts=S.cleaners.map(function(c){ return '<option value="'+c.id+'">'+c.name+'</option>'; }).join('');
+  div.innerHTML='<div class="af">'+
+    '<select id="asel-'+aid+'" onchange="recalc('+jobId+')">'+(opts||'<option value="">Sin limpiadores</option>')+'</select>'+
+    '<input type="number" id="aamt-'+aid+'" placeholder="$0.00" step="0.01" min="0" oninput="recalc('+jobId+')">'+
+    '<div class="pct" id="apct-'+aid+'">0%</div>'+
+    '<button class="bdel" onclick="removeAsgn('+aid+','+jobId+')">✕</button>'+
+  '</div>';
+  cont.appendChild(div);
+}
+function removeAsgn(aid,jobId){
+  var el=document.getElementById('ar-'+aid);
+  if(el) el.remove();
+  recalc(jobId);
+}
+function recalc(id){
+  var price=parseFloat(document.getElementById('jprice-'+id).value)||0;
+  var clTotal=0;
+  document.querySelectorAll('#asgn-'+id+' .ar').forEach(function(row){
+    var aid=row.id.split('-')[1];
+    var amt=parseFloat(document.getElementById('aamt-'+aid).value)||0;
+    clTotal+=amt;
+    var pct=price>0?Math.round((amt/price)*100):0;
+    var pel=document.getElementById('apct-'+aid);
+    if(pel) pel.textContent=pct+'%';
+  });
+  var hasDr=document.getElementById('jhd-'+id).checked;
+  var drCost=hasDr?(parseFloat(document.getElementById('jdc-'+id).value)||0):0;
+  var drPct=price>0?Math.round((drCost/price)*100):0;
+  var dPctEl=document.getElementById('jdpct-'+id);
+  if(dPctEl) dPctEl.textContent=hasDr&&drCost>0?'Representa el '+drPct+'% del trabajo':'';
+  var dRow=document.getElementById('jdrow-'+id);
+  var dAmt=document.getElementById('jdamt-'+id);
+  if(dRow) dRow.style.display=hasDr&&drCost>0?'flex':'none';
+  if(dAmt) dAmt.textContent=n2(drCost);
+  var profit=price-(clTotal+drCost);
+  var ptEl=document.getElementById('jpt-'+id);
+  var clEl=document.getElementById('jcl-'+id);
+  var gEl=document.getElementById('jgain-'+id);
+  if(ptEl) ptEl.textContent=n2(price);
+  if(clEl) clEl.textContent=n2(clTotal);
+  if(gEl){ gEl.textContent=n2(profit); gEl.style.color=profit>=0?'var(--gr)':'var(--rd)'; }
+  calcGT();
+}
+function calcGT(){
+  var g=0;
+  document.querySelectorAll('[id^="jcl-"]').forEach(function(el){ g+=parseFloat(el.textContent.replace('$',''))||0; });
+  document.querySelectorAll('[id^="jhd-"]').forEach(function(chk){
+    if(chk.checked){ var jid=chk.id.split('-')[1]; g+=parseFloat(document.getElementById('jdc-'+jid).value)||0; }
+  });
+  document.getElementById('grand-total').textContent=n2(g);
+}
+function getJobs(){
+  var jobs=[];
+  document.querySelectorAll('[id^="jb-"]').forEach(function(block){
+    var bid=block.id.split('-')[1];
+    var hasDr=document.getElementById('jhd-'+bid).checked||false;
+    var drCost=hasDr?(parseFloat(document.getElementById('jdc-'+bid).value)||0):0;
+    var price=parseFloat(document.getElementById('jprice-'+bid).value)||0;
+    var assignees=[];
+    block.querySelectorAll('.ar').forEach(function(row){
+      var aid=row.id.split('-')[1];
+      var cid=parseInt(document.getElementById('asel-'+aid).value);
+      var amt=parseFloat(document.getElementById('aamt-'+aid).value)||0;
+      var pct=price>0?Math.round((amt/price)*100):0;
+      if(cid) assignees.push({cleanerId:cid,amount:amt,pct:pct});
+    });
+    jobs.push({
+      addr: document.getElementById('jaddr-'+bid).value.trim()||'',
+      price: price,
+      type: document.getElementById('jtype-'+bid).value||'',
+      assignees: assignees,
+      hasDriver: hasDr,
+      driverName: hasDr?(document.getElementById('jdn-'+bid).value.trim()||''):'',
+      driverCost: drCost,
+      driverStatus: hasDr?(document.getElementById('jds-'+bid).value||'pending'):'pending'
+    });
+  });
+  return jobs;
+}
+function saveJobDay(){
+  var cid=parseInt(document.getElementById('j-cleaner').value);
+  if(!cid){ alert('Selecciona el limpiador principal'); return; }
+  var date=document.getElementById('j-date').value;
+  if(!date){ alert('Selecciona la fecha'); return; }
+  var jobs=getJobs();
+  if(!jobs.length){ alert('Agrega al menos un trabajo'); return; }
+  S.days.push({
+    id: Date.now(), cleanerId: cid, date: date, jobs: jobs,
+    status: document.getElementById('j-status').value,
+    notes: document.getElementById('j-notes').value.trim()
+  });
+  save(); closeModal('mj'); renderJobs(); renderCleaners(); updateSummary();
+}
+
+// ═══════════════════════════════
+// EDIT
+// ═══════════════════════════════
+var editId=null;
+function openEditModal(dayId){
+  var d=S.days.find(function(d){ return d.id===dayId; }); if(!d) return;
+  editId=dayId; fillCD('edit-cleaner');
+  document.getElementById('edit-cleaner').value=d.cleanerId;
+  document.getElementById('edit-date').value=d.date;
+  document.getElementById('edit-status').value=d.status;
+  document.getElementById('edit-notes').value=d.notes||'';
+  document.getElementById('medit').classList.add('open');
+}
+function saveEdit(){
+  var d=S.days.find(function(d){ return d.id===editId; }); if(!d) return;
+  var cid=parseInt(document.getElementById('edit-cleaner').value);
+  if(cid) d.cleanerId=cid;
+  d.date=document.getElementById('edit-date').value||d.date;
+  d.status=document.getElementById('edit-status').value;
+  d.notes=document.getElementById('edit-notes').value.trim();
+  save(); closeModal('medit'); renderJobs(); renderCleaners(); updateSummary();
+}
+
+// ═══════════════════════════════
+// RENDER JOBS
+// ═══════════════════════════════
+function fillCF(){
+  var el=document.getElementById('flt-cleaner');
+  var cur=el.value;
+  el.innerHTML='<option value="">Todos</option>';
+  S.cleaners.forEach(function(c){ var o=document.createElement('option'); o.value=c.id; o.textContent=c.name; el.appendChild(o); });
+  el.value=cur;
+}
+function fillCD(selId){
+  var el=document.getElementById(selId); if(!el) return;
+  var cur=el.value;
+  el.innerHTML='<option value="">— selecciona —</option>';
+  S.cleaners.forEach(function(c){ var o=document.createElement('option'); o.value=c.id; o.textContent=c.name; el.appendChild(o); });
+  el.value=cur;
+}
+function toggleDB(id){
+  document.getElementById('db-'+id).classList.toggle('open');
+  document.getElementById('dchev-'+id).classList.toggle('open');
+}
+function payDrivers(dayId){
+  var d=S.days.find(function(d){ return d.id===dayId; }); if(!d) return;
+  d.jobs.forEach(function(j){ if(j.hasDriver&&j.driverCost>0) j.driverStatus='paid'; });
+  save(); renderJobs(); renderCleaners(); updateSummary();
+}
+function toggleStatus(id){
+  var d=S.days.find(function(d){ return d.id===id; }); if(!d) return;
+  d.status=d.status==='paid'?'pending':'paid';
+  save(); renderJobs(); renderCleaners(); updateSummary();
+}
+function deleteDay(id){
+  if(!confirm('¿Eliminar este día?')) return;
+  S.days=S.days.filter(function(d){ return d.id!==id; });
+  save(); renderJobs(); renderCleaners(); updateSummary();
+}
+function renderJobs(){
+  fillCF();
+  var cont=document.getElementById('jobs-list');
+  var fc=document.getElementById('flt-cleaner').value;
+  var fs=document.getElementById('flt-status').value;
+  var list=S.days.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+  if(fc) list=list.filter(function(d){ return d.cleanerId==fc; });
+  if(fs) list=list.filter(function(d){ return d.status===fs; });
+  if(!list.length){ cont.innerHTML='<div class="empty"><div class="icon">💳</div>Sin registros.</div>'; return; }
+
+  var sL={pending:'Pendiente',paid:'Pagado',partial:'Parcial'};
+  var sC={pending:'sp',paid:'sk',partial:'sl'};
+
+  cont.innerHTML=list.map(function(d){
+    var cl=S.cleaners.find(function(c){ return c.id===d.cleanerId; });
+    var drTotal=d.jobs.reduce(function(s,j){ return s+(j.hasDriver?j.driverCost||0:0); },0);
+    var clTotal=d.jobs.reduce(function(s,j){
+      return s+j.assignees.filter(function(a){ return a.cleanerId===d.cleanerId; }).reduce(function(a,x){ return a+x.amount; },0);
+    },0);
+    var driverPending=d.jobs.some(function(j){ return j.hasDriver&&j.driverCost>0&&j.driverStatus!=='paid'; });
+
+    var jobsHTML=d.jobs.map(function(j,i){
+      var clPaid=j.assignees.reduce(function(s,a){ return s+a.amount; },0);
+      var profit=j.price-(clPaid+(j.driverCost||0));
+      var aRows=j.assignees.map(function(a){
+        var ac=S.cleaners.find(function(c){ return c.id===a.cleanerId; });
+        var pct=j.price>0?Math.round((a.amount/j.price)*100):a.pct||0;
+        return '<tr><td>'+(ac?ac.name:'N/A')+'</td><td class="mono">'+n2(a.amount)+'</td>'+
+          '<td>'+pct+'%<span class="bar"><span class="barf" style="width:'+Math.min(pct,100)+'%"></span></span></td></tr>';
+      }).join('');
+      var dRow=j.hasDriver&&j.driverCost>0?
+        '<tr><td style="color:var(--bl)">🚗 '+(j.driverName||'Chofer')+
+          '<span style="margin-left:4px;padding:1px 5px;border-radius:8px;font-size:10px;font-weight:600;'+(j.driverStatus==='paid'?'background:rgba(90,158,114,.2);color:var(--gr)':'background:rgba(74,126,192,.2);color:var(--bl)')+'">'+
+          (j.driverStatus==='paid'?'Pagado':'Pendiente')+'</span></td>'+
+          '<td class="mono" style="color:var(--bl)">'+n2(j.driverCost)+'</td>'+
+          '<td style="color:var(--bl)">'+(j.price>0?Math.round((j.driverCost/j.price)*100):0)+'%<span class="bar"><span class="barf" style="width:'+(j.price>0?Math.min(Math.round((j.driverCost/j.price)*100),100):0)+'%;background:var(--bl)"></span></span></td></tr>':'';
+      return '<div class="jd">'+
+        '<div class="jdh">'+
+          '<div>'+
+            '<div style="font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Trabajo '+(i+1)+' · '+(j.type||'')+'</div>'+
+            '<div class="jadr">📍 '+(j.addr||'Sin dirección')+'</div>'+
+          '</div>'+
+          '<div style="text-align:right"><div class="jpt">'+n2(j.price)+'</div><div class="jpl">cobra al cliente</div></div>'+
+        '</div>'+
+        ((j.assignees.length||j.hasDriver)?
+          '<table class="ct"><thead><tr><th>Persona</th><th>Le toca</th><th>% del trabajo</th></tr></thead><tbody>'+aRows+dRow+'</tbody></table>':'')+
+        '<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-top:1px solid var(--bor);margin-top:3px">'+
+          '<span style="color:var(--mu)">Tu ganancia:</span>'+
+          '<strong style="font-family:\'DM Mono\',monospace;color:'+(profit>=0?'var(--gr)':'var(--rd)')+'">'+n2(profit)+'</strong>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    return '<div class="dc">'+
+      '<div class="dh" onclick="toggleDB('+d.id+')">'+
+        '<div>'+
+          '<div class="ddate">'+fmt(d.date)+'</div>'+
+          '<div class="dmeta">'+(cl?cl.name:'N/A')+' · '+d.jobs.length+' trabajo'+(d.jobs.length!==1?'s':'')+'</div>'+
+        '</div>'+
+        '<div class="dright">'+
+          '<span class="sb '+sC[d.status]+'">'+sL[d.status]+'</span>'+
+          '<div style="text-align:right">'+
+            '<div style="font-family:\'DM Mono\',monospace;font-size:15px;color:var(--gl)">'+n2(clTotal)+' <span style="font-size:10px;color:var(--mu)">limpiadoras</span></div>'+
+            (drTotal>0?'<div style="font-family:\'DM Mono\',monospace;font-size:13px;color:var(--bl)">'+n2(drTotal)+' <span style="font-size:10px">chofer</span></div>':'')+
+          '</div>'+
+          '<span class="chev" id="dchev-'+d.id+'">▼</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="db" id="db-'+d.id+'">'+
+        jobsHTML+
+        (d.notes?'<div class="jd" style="font-style:italic;color:var(--mu);font-size:11px">📝 '+d.notes+'</div>':'')+
+        '<div class="df">'+
+          '<div class="dfs">'+
+            'Limpiadoras: <strong>'+n2(clTotal)+'</strong>'+
+            (drTotal>0?' &nbsp;·&nbsp; 🚗 Chofer: <strong style="color:var(--bl)">'+n2(drTotal)+'</strong>':'')+
+            (driverPending?'<span style="margin-left:6px;color:var(--bl);font-size:10px">⏳ pendiente</span>':'')+
+          '</div>'+
+          '<div class="dfa">'+
+            (driverPending?'<button class="btn btn-out btn-sm" style="color:var(--bl)" onclick="payDrivers('+d.id+')">✓ Pagar chofer</button>':'')+
+            '<button class="btn btn-out btn-sm" style="color:var(--gold)" onclick="openEditModal('+d.id+')">✏️</button>'+
+            '<button class="btn btn-out btn-sm" onclick="toggleStatus('+d.id+')">'+(d.status==='paid'?'Deshacer':'✓ Pagado')+'</button>'+
+            '<button class="bdel" onclick="deleteDay('+d.id+')">✕</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ═══════════════════════════════
+// EXPENSES
+// ═══════════════════════════════
+function saveExpense(){
+  var amount=parseFloat(document.getElementById('e-amount').value);
+  if(!amount||amount<=0){ alert('Monto inválido'); return; }
+  S.expenses.push({
+    id:Date.now(), cat:document.getElementById('e-cat').value,
+    desc:document.getElementById('e-desc').value.trim()||'—',
+    date:document.getElementById('e-date').value, amount:amount
+  });
+  save(); closeModal('me');
+  ['e-desc','e-amount','e-date'].forEach(function(i){ document.getElementById(i).value=''; });
+  renderExpenses(); updateSummary();
+}
+function deleteExpense(id){
+  if(!confirm('¿Eliminar?')) return;
+  S.expenses=S.expenses.filter(function(e){ return e.id!==id; });
+  save(); renderExpenses(); updateSummary();
+}
+function renderExpenses(){
+  var tb=document.getElementById('expenses-body');
+  var list=S.expenses.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+  if(!list.length){ tb.innerHTML='<tr><td colspan="5"><div class="empty"><div class="icon">📋</div>Sin gastos.</div></td></tr>'; return; }
+  tb.innerHTML=list.map(function(e){
+    return '<tr><td>'+fmt(e.date)+'</td><td><span class="bexp">'+e.cat+'</span></td><td>'+e.desc+'</td>'+
+      '<td class="mono" style="color:var(--rd)">'+n2(e.amount)+'</td>'+
+      '<td><button class="bdel" onclick="deleteExpense('+e.id+')">✕</button></td></tr>';
+  }).join('');
+}
+
+// ═══════════════════════════════
+// SUMMARY
+// ═══════════════════════════════
+function updateSummary(){
+  var month=tm();
+  var allOwed=S.cleaners.reduce(function(s,c){ return s+cOwed(c.id); },0);
+  var allPaid=S.cleaners.reduce(function(s,c){ return s+cPaid(c.id); },0);
+  var dts=drTotals();
+  var drOwed=dts.reduce(function(s,d){ return s+d.owed; },0);
+  var drPaid=dts.reduce(function(s,d){ return s+d.paid; },0);
+  var exp=S.expenses.filter(function(e){ return e.date&&e.date.startsWith(month); }).reduce(function(s,e){ return s+parseFloat(e.amount); },0);
+  var revenue=S.days.filter(function(d){ return d.date&&d.date.startsWith(month); }).reduce(function(s,d){ return s+d.jobs.reduce(function(ss,j){ return ss+j.price; },0); },0);
+  var profit=revenue-allOwed-allPaid-drOwed-drPaid-exp;
+
+  document.getElementById('sumOwed').textContent=n2(allOwed+drOwed);
+  document.getElementById('sumPaid').textContent=n2(allPaid+drPaid);
+  document.getElementById('sumDrivers').textContent=n2(drOwed);
+  document.getElementById('sumExpenses').textContent=n2(exp);
+  var pe=document.getElementById('sumProfit');
+  pe.textContent=n2(profit);
+  pe.style.color=profit>=0?'var(--gr)':'var(--rd)';
+
+  var banner=document.getElementById('pbanner');
+  var amt=document.getElementById('bannerAmt');
+  var det=document.getElementById('bannerDet');
+  amt.textContent=n2(profit);
+  amt.className='ban-amt'+(profit<0?' neg':'');
+  banner.className='ban'+(profit<0?' neg':'');
+
+  var html='<div style="font-size:11px;line-height:2">';
+  html+='<span style="color:var(--mu)">Ingresos:</span> <span style="font-family:\'DM Mono\',monospace;color:var(--gl)">'+n2(revenue)+'</span><br>';
+  S.cleaners.forEach(function(c){
+    var ow=cOwed(c.id), pd=cPaid(c.id);
+    if(ow>0||pd>0){
+      html+='<span style="color:var(--mu)">👩 '+c.name+':</span> ';
+      if(ow>0) html+='<span style="font-family:\'DM Mono\',monospace;color:var(--gold)">-'+n2(ow)+' pend</span> ';
+      if(pd>0) html+='<span style="font-family:\'DM Mono\',monospace;color:var(--gr)">-'+n2(pd)+' pagado</span>';
+      html+='<br>';
+    }
+  });
+  dts.forEach(function(dr){
+    if(dr.owed>0||dr.paid>0){
+      html+='<span style="color:var(--bl)">🚗 '+dr.name+':</span> ';
+      if(dr.owed>0) html+='<span style="font-family:\'DM Mono\',monospace;color:var(--bl)">-'+n2(dr.owed)+' pend</span> ';
+      if(dr.paid>0) html+='<span style="font-family:\'DM Mono\',monospace;color:var(--gr)">-'+n2(dr.paid)+' pagado</span>';
+      html+='<br>';
+    }
+  });
+  html+='<span style="color:var(--mu)">Gastos:</span> <span style="font-family:\'DM Mono\',monospace;color:var(--rd)">-'+n2(exp)+'</span></div>';
+  det.innerHTML=html;
+}
+
+// ═══════════════════════════════
+// PDF
+// ═══════════════════════════════
+function initReport(){
+  var now=new Date(), day=now.getDay();
+  var mon=new Date(now); mon.setDate(now.getDate()-(day===0?6:day-1));
+  var sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  var fmtD=function(d){ return d.toISOString().split('T')[0]; };
+  if(!document.getElementById('week-start').value) document.getElementById('week-start').value=fmtD(mon);
+  if(!document.getElementById('week-end').value) document.getElementById('week-end').value=fmtD(sun);
+}
+function generatePDF(){
+  var ws=document.getElementById('week-start').value;
+  var we=document.getElementById('week-end').value;
+  if(!ws||!we){ alert('Selecciona el rango'); return; }
+  var jspdf=window.jspdf;
+  var doc=new jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'letter'});
+  var G=[201,168,76],D=[15,14,12],GR=[100,95,90],W=[240,234,216],GN=[90,158,114],R=[192,90,74],B=[74,126,192];
+  var y=0;
+  doc.setFillColor.apply(doc,D); doc.rect(0,0,216,28,'F');
+  doc.setFillColor.apply(doc,G); doc.rect(0,0,4,28,'F');
+  doc.setFontSize(16); doc.setTextColor.apply(doc,G); doc.setFont('helvetica','bold');
+  doc.text('EWA Elite Cleaning Service',10,11);
+  doc.setFontSize(9); doc.setTextColor.apply(doc,GR); doc.setFont('helvetica','normal');
+  doc.text('Reporte: '+fmt(ws)+' — '+fmt(we),10,18);
+  doc.setFontSize(7); doc.text('Generado: '+new Date().toLocaleDateString('es-US'),148,22);
+  y=34;
+
+  var days=S.days.filter(function(d){ return d.date>=ws&&d.date<=we; }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+  var expenses=S.expenses.filter(function(e){ return e.date>=ws&&e.date<=we; });
+  var totRev=days.reduce(function(s,d){ return s+d.jobs.reduce(function(ss,j){ return ss+j.price; },0); },0);
+  var totLab=days.reduce(function(s,d){ return s+d.jobs.reduce(function(ss,j){ return ss+j.assignees.reduce(function(a,x){ return a+x.amount; },0); },0); },0);
+  var totDrv=days.reduce(function(s,d){ return s+d.jobs.reduce(function(ss,j){ return ss+(j.hasDriver?j.driverCost||0:0); },0); },0);
+  var totExp=expenses.reduce(function(s,e){ return s+parseFloat(e.amount); },0);
+  var totProfit=totRev-totLab-totDrv-totExp;
+
+  var boxes=[
+    {l:'Ingresos',v:n2(totRev),c:G},
+    {l:'Limpiadoras',v:'-'+n2(totLab),c:W},
+    {l:'Choferes',v:'-'+n2(totDrv),c:B},
+    {l:'Gastos',v:'-'+n2(totExp),c:R},
+    {l:'Ganancia',v:n2(totProfit),c:totProfit>=0?GN:R}
+  ];
+  boxes.forEach(function(b,i){
+    var bx=10+i*(37+3);
+    doc.setFillColor(33,31,28); doc.roundedRect(bx,y,37,15,2,2,'F');
+    doc.setFontSize(6); doc.setTextColor.apply(doc,GR); doc.setFont('helvetica','normal');
+    doc.text(b.l,bx+2,y+6);
+    doc.setFontSize(9); doc.setTextColor.apply(doc,b.c); doc.setFont('helvetica','bold');
+    doc.text(b.v,bx+2,y+13);
+  });
+  y+=22;
+
+  var cleanerIds=[...new Set(days.map(function(d){ return d.cleanerId; }))];
+  cleanerIds.forEach(function(cid){
+    var cl=S.cleaners.find(function(c){ return c.id===cid; });
+    var cDays=days.filter(function(d){ return d.cleanerId===cid; });
+    if(!cDays.length) return;
+    if(y>235){doc.addPage();y=15;}
+    doc.setFillColor.apply(doc,G); doc.setTextColor(0,0,0);
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.roundedRect(10,y,196,8,1,1,'F');
+    doc.text((cl?cl.name:'N/A')+'  ·  '+(cl?cl.method:''),13,y+5.5);
+    y+=12;
+    cDays.forEach(function(d){
+      if(y>245){doc.addPage();y=15;}
+      doc.setFillColor(26,25,22); doc.rect(10,y,196,7,'F');
+      doc.setFontSize(8); doc.setTextColor.apply(doc,W); doc.setFont('helvetica','bold');
+      doc.text(fmt(d.date),13,y+5);
+      doc.setTextColor.apply(doc,d.status==='paid'?GN:d.status==='partial'?B:G);
+      doc.text(d.status==='paid'?'PAGADO':d.status==='partial'?'PARCIAL':'PENDIENTE',148,y+5);
+      doc.setTextColor.apply(doc,W);
+      doc.text(n2(dayTotal(d)),178,y+5);
+      y+=9;
+      d.jobs.forEach(function(j,ji){
+        if(y>248){doc.addPage();y=15;}
+        var jProfit=j.price-(j.assignees.reduce(function(s,a){ return s+a.amount; },0)+(j.driverCost||0));
+        doc.setFontSize(7.5); doc.setTextColor.apply(doc,GR); doc.setFont('helvetica','italic');
+        doc.text('  T'+(ji+1)+': '+(j.addr||'Sin dirección')+' ['+j.type+']',13,y);
+        doc.setTextColor.apply(doc,W); doc.setFont('helvetica','bold');
+        doc.text(n2(j.price),148,y);
+        doc.setTextColor.apply(doc,jProfit>=0?GN:R);
+        doc.text('Gan: '+n2(jProfit),168,y);
+        y+=5;
+        j.assignees.forEach(function(a){
+          var ac=S.cleaners.find(function(c){ return c.id===a.cleanerId; });
+          var pct=j.price>0?Math.round((a.amount/j.price)*100):a.pct||0;
+          if(y>248){doc.addPage();y=15;}
+          doc.setFontSize(7); doc.setTextColor.apply(doc,W); doc.setFont('helvetica','normal');
+          doc.text('    → '+(ac?ac.name:'N/A'),16,y);
+          doc.text(n2(a.amount),140,y);
+          doc.text(pct+'%',165,y);
+          y+=4.5;
+        });
+        if(j.hasDriver&&j.driverCost>0){
+          if(y>248){doc.addPage();y=15;}
+          var dPct=j.price>0?Math.round((j.driverCost/j.price)*100):0;
+          doc.setFontSize(7); doc.setTextColor.apply(doc,B); doc.setFont('helvetica','italic');
+          doc.text('    🚗 '+(j.driverName||'Chofer')+': '+n2(j.driverCost)+' ('+dPct+'%) — '+(j.driverStatus==='paid'?'Pagado':'Pendiente'),16,y);
+          y+=4.5;
+        }
+      });
+      if(d.notes){ doc.setFontSize(6.5); doc.setTextColor.apply(doc,GR); doc.text('  Nota: '+d.notes,16,y); y+=4.5; }
+      y+=3;
+    });
+    y+=4;
+  });
+
+  if(expenses.length){
+    if(y>228){doc.addPage();y=15;}
+    doc.setFillColor.apply(doc,R); doc.setTextColor(255,255,255);
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.roundedRect(10,y,196,8,1,1,'F');
+    doc.text('GASTOS DE LA SEMANA',13,y+5.5);
+    doc.text('Total: '+n2(totExp),163,y+5.5);
+    y+=12;
+    doc.autoTable({startY:y,head:[['Fecha','Categoría','Descripción','Monto']],
+      body:expenses.map(function(e){ return [fmt(e.date),e.cat,e.desc,n2(e.amount)]; }),
+      theme:'plain',styles:{font:'helvetica',fontSize:7.5,textColor:W,fillColor:D,cellPadding:3},
+      headStyles:{fillColor:[33,31,28],textColor:GR,fontStyle:'bold',fontSize:7},
+      alternateRowStyles:{fillColor:[26,25,22]},
+      columnStyles:{3:{halign:'right',fontStyle:'bold'}},margin:{left:10,right:10}});
+    y=doc.lastAutoTable.finalY+8;
+  }
+
+  if(y>238){doc.addPage();y=15;}
+  doc.setFillColor.apply(doc,totProfit>=0?GN:R); doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.roundedRect(10,y,196,8,1,1,'F');
+  doc.text('GANANCIA DE LA SEMANA: '+n2(totProfit),13,y+5.5);
+  y+=12;
+  doc.setFontSize(8); doc.setTextColor.apply(doc,GR); doc.setFont('helvetica','normal');
+  doc.text('Ingresos: '+n2(totRev),13,y); y+=5;
+  doc.text('Pago limpiadoras: -'+n2(totLab),13,y); y+=5;
+  doc.text('Pago choferes: -'+n2(totDrv),13,y); y+=5;
+  doc.text('Gastos: -'+n2(totExp),13,y); y+=5;
+  doc.setFont('helvetica','bold'); doc.setTextColor.apply(doc,totProfit>=0?GN:R);
+  doc.text('Ganancia neta: '+n2(totProfit),13,y);
+
+  var pc=doc.internal.getNumberOfPages();
+  for(var i=1;i<=pc;i++){
+    doc.setPage(i); doc.setFontSize(7); doc.setTextColor.apply(doc,GR);
+    doc.text('EWA Elite Cleaning Service LLC · Louisville, KY',10,275);
+    doc.text('Pág '+i+'/'+pc,195,275,'right');
+  }
+  doc.save('EWA_'+ws+'_al_'+we+'.pdf');
+}
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+renderCleaners();
+updateSummary();
+</script>
+</body>
+</html>
